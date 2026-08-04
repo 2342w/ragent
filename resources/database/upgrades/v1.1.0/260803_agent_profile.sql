@@ -1,15 +1,69 @@
--- PostgreSQL Initial Data for Ragent
+-- v1.1.0 260803 智能体人设配置
+-- 面向终端用户的提示词从 classpath .st 迁入 DB，由控制台「智能体」菜单管理并支持运行时切换
+-- 内置智能体是所有空槽位的回落终点，不可编辑不可删除；空白 content 视为未配置
 
-INSERT INTO t_user (id, username, password, role, avatar, create_time, update_time, deleted)
-VALUES (2001523723396308993, 'admin', 'admin', 'admin', 'https://static.deepseek.com/user-avatar/G_6cuD8GbD53VwGRwisvCsZ6', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
+-- 1. 建表
+CREATE TABLE IF NOT EXISTS t_agent_profile (
+    id          VARCHAR(20)  NOT NULL PRIMARY KEY,
+    name        VARCHAR(64)  NOT NULL,
+    description VARCHAR(512),
+    avatar      VARCHAR(32),
+    builtin     SMALLINT     NOT NULL DEFAULT 0,
+    active      SMALLINT     NOT NULL DEFAULT 0,
+    create_by   VARCHAR(20),
+    update_by   VARCHAR(20),
+    create_time TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted     SMALLINT     NOT NULL DEFAULT 0,
+    CONSTRAINT uk_agent_name UNIQUE (name)
+);
+CREATE INDEX IF NOT EXISTS idx_agent_active ON t_agent_profile (active);
+COMMENT ON TABLE t_agent_profile IS '智能体人设配置表';
 
--- ============================================
--- 智能体人设（提示词槽位）
--- ============================================
+CREATE TABLE IF NOT EXISTS t_agent_prompt (
+    id          VARCHAR(20)  NOT NULL PRIMARY KEY,
+    agent_id    VARCHAR(20)  NOT NULL,
+    slot_key    VARCHAR(64)  NOT NULL,
+    content     TEXT,
+    create_by   VARCHAR(20),
+    update_by   VARCHAR(20),
+    create_time TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted     SMALLINT     NOT NULL DEFAULT 0,
+    CONSTRAINT uk_agent_slot UNIQUE (agent_id, slot_key)
+);
+CREATE INDEX IF NOT EXISTS idx_agent_prompt_agent ON t_agent_prompt (agent_id);
+COMMENT ON TABLE t_agent_prompt IS '智能体提示词槽位表';
 
+-- 2. 列注释
+-- t_agent_profile
+COMMENT ON COLUMN t_agent_profile.id IS '主键ID';
+COMMENT ON COLUMN t_agent_profile.name IS '智能体名称，唯一';
+COMMENT ON COLUMN t_agent_profile.description IS '智能体描述';
+COMMENT ON COLUMN t_agent_profile.avatar IS '头像预设标识，取值由前端预设表定义，认不出时按 id 哈希兜底';
+COMMENT ON COLUMN t_agent_profile.builtin IS '是否内置 0：否 1：是。内置智能体不可编辑不可删除，是所有空槽位的回落终点';
+COMMENT ON COLUMN t_agent_profile.active IS '是否激活 0：否 1：是。全局仅允许一条为 1';
+COMMENT ON COLUMN t_agent_profile.create_by IS '创建人';
+COMMENT ON COLUMN t_agent_profile.update_by IS '更新人';
+COMMENT ON COLUMN t_agent_profile.create_time IS '创建时间';
+COMMENT ON COLUMN t_agent_profile.update_time IS '更新时间';
+COMMENT ON COLUMN t_agent_profile.deleted IS '是否删除 0：正常 1：删除';
+
+-- t_agent_prompt
+COMMENT ON COLUMN t_agent_prompt.id IS '主键ID';
+COMMENT ON COLUMN t_agent_prompt.agent_id IS '所属智能体ID';
+COMMENT ON COLUMN t_agent_prompt.slot_key IS '槽位标识，见 AgentPromptSlot 枚举';
+COMMENT ON COLUMN t_agent_prompt.content IS '提示词全文，空白视为未配置并回落内置智能体';
+COMMENT ON COLUMN t_agent_prompt.create_by IS '创建人';
+COMMENT ON COLUMN t_agent_prompt.update_by IS '更新人';
+COMMENT ON COLUMN t_agent_prompt.create_time IS '创建时间';
+COMMENT ON COLUMN t_agent_prompt.update_time IS '更新时间';
+COMMENT ON COLUMN t_agent_prompt.deleted IS '是否删除 0：正常 1：删除';
+
+-- 3. 内置智能体与其提示词槽位（可重复执行）
 -- 内置智能体：不可编辑、不可删除，是所有空槽位的回落终点
 INSERT INTO t_agent_profile (id, name, description, avatar, builtin, active, create_time, update_time, deleted)
-VALUES ('2001523723396309001', '默认助手', '系统默认人设，其他智能体没自定义的提示词都沿用这里的内容', 'orbit-indigo', 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
+VALUES ('2001523723396309001', '默认助手', '系统默认人设，其他智能体没自定义的提示词都沿用这里的内容', 'orbit-indigo', 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0) ON CONFLICT DO NOTHING;
 
 -- 闲聊 / 关于助手
 INSERT INTO t_agent_prompt (id, agent_id, slot_key, content, create_time, update_time, deleted)
@@ -88,7 +142,7 @@ IT 支持：VPN、企业邮箱、打印机连接、常见网络/账号问题等
 
 # 执行指令
 现在，请根据上述规则处理用户消息。
-$prompt$, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
+$prompt$, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0) ON CONFLICT DO NOTHING;
 
 -- MCP 问答
 INSERT INTO t_agent_prompt (id, agent_id, slot_key, content, create_time, update_time, deleted)
@@ -356,7 +410,7 @@ VALUES ('2001523723396309012', '2001523723396309001', 'MCP_ANSWER', $prompt$# �
 - 加粗只用于关键状态、关键指标、重要限制或核心结论，不大段加粗。
 - 表格只展示与问题相关的字段；列表项之间通常不空行；Markdown 标题后空一行再写正文。
 - 默认不输出原始技术字段名，除非字段无法可靠转译或用户明确要求。
-$prompt$, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
+$prompt$, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0) ON CONFLICT DO NOTHING;
 
 -- 混合问答
 INSERT INTO t_agent_prompt (id, agent_id, slot_key, content, create_time, update_time, deleted)
@@ -616,7 +670,7 @@ VALUES ('2001523723396309013', '2001523723396309001', 'MIXED_ANSWER', $prompt$# 
     <tr><td>专业版</td><td>支持</td><td>支持</td><td>面向团队用户，<br>含全部高级功能。</td></tr>
   </tbody>
 </table>
-$prompt$, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
+$prompt$, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0) ON CONFLICT DO NOTHING;
 
 -- 知识库问答（WorkFlow 与 Agent 模式均生效）
 INSERT INTO t_agent_prompt (id, agent_id, slot_key, content, create_time, update_time, deleted)
@@ -844,7 +898,7 @@ VALUES ('2001523723396309014', '2001523723396309001', 'KB_ANSWER', $prompt$# 角
     <tr><td>专业版</td><td>支持</td><td>支持</td><td>面向团队用户，<br>含全部高级功能。</td></tr>
   </tbody>
 </table>
-$prompt$, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
+$prompt$, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0) ON CONFLICT DO NOTHING;
 
 -- 会话压缩
 INSERT INTO t_agent_prompt (id, agent_id, slot_key, content, create_time, update_time, deleted)
@@ -937,7 +991,7 @@ VALUES ('2001523723396309015', '2001523723396309001', 'CONVERSATION_SUMMARY', $p
 
 **正确输出：**
 用户咨询了校园招聘流程（已解答）、社会招聘流程（已解答）、两者对比差异（已解答）。关键词：校招, 社招, 招聘流程
-$prompt$, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
+$prompt$, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0) ON CONFLICT DO NOTHING;
 
 -- 推荐问题
 INSERT INTO t_agent_prompt (id, agent_id, slot_key, content, create_time, update_time, deleted)
@@ -963,4 +1017,4 @@ VALUES ('2001523723396309016', '2001523723396309001', 'RECOMMENDED_QUESTIONS', $
 
 # 助手回答
 {answer}
-$prompt$, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
+$prompt$, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0) ON CONFLICT DO NOTHING;

@@ -15,22 +15,22 @@
  * limitations under the License.
  */
 
-package com.nageoffer.ai.ragent.rag.config;
+package com.nageoffer.ai.ragent.rag.controller.request;
 
 import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 
 /**
- * 体验环境只读模式配置
+ * 智能体新建与改名请求
  */
 @Data
-@Configuration
-@ConfigurationProperties(prefix = "ragent")
-public class DemoModeProperties {
+public class AgentProfileSaveRequest {
+
+    private String name;
+
+    private String description;
 
     /**
-     * 是否开启体验环境只读模式，默认关闭
+     * 头像预设标识，由前端从预设表中挑选
      */
-    private Boolean demoMode = false;
+    private String avatar;
 }

@@ -15,22 +15,10 @@
  * limitations under the License.
  */
 
-package com.nageoffer.ai.ragent.rag.config;
+package com.nageoffer.ai.ragent.rag.dao.mapper;
 
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.nageoffer.ai.ragent.rag.dao.entity.AgentPromptDO;
 
-/**
- * 体验环境只读模式配置
- */
-@Data
-@Configuration
-@ConfigurationProperties(prefix = "ragent")
-public class DemoModeProperties {
-
-    /**
-     * 是否开启体验环境只读模式，默认关闭
-     */
-    private Boolean demoMode = false;
+public interface AgentPromptMapper extends BaseMapper<AgentPromptDO> {
 }

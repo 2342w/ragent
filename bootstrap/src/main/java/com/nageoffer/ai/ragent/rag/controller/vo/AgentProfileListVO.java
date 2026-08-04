@@ -15,22 +15,33 @@
  * limitations under the License.
  */
 
-package com.nageoffer.ai.ragent.rag.config;
+package com.nageoffer.ai.ragent.rag.controller.vo;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 /**
- * 体验环境只读模式配置
+ * 智能体列表，附带当前执行架构供页面标注哪些槽位生效
  */
 @Data
-@Configuration
-@ConfigurationProperties(prefix = "ragent")
-public class DemoModeProperties {
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class AgentProfileListVO {
 
     /**
-     * 是否开启体验环境只读模式，默认关闭
+     * 取自 ragent.engine.type，部署级配置，页面只读展示
      */
-    private Boolean demoMode = false;
+    private String mode;
+
+    /**
+     * 当前架构下生效的槽位总数，全体智能体共用，作覆盖率分母
+     */
+    private Integer effectiveSlotTotal;
+
+    private List<AgentProfileVO> agents;
 }
